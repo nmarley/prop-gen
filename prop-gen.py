@@ -3,30 +3,23 @@ import sys
 from pprint import pprint
 import sys
 import os
+import simplejson as json
 # ============================================================================
-usage = "%s <range_start> <range_stop> <timestamp>" % sys.argv[0]
 
-if len(sys.argv) < 4:
-    print(usage)
-    sys.exit(1)
-else:
-    start = int(sys.argv[1])
-    stop = int(sys.argv[2])
-#    ntime = int(sys.argv[3])
-
-# print("start = %s" % start)
-# print("stop = %s" % stop)
-# print("ntime = %s" % ntime)
-
+# if either of these hashes is found, stop immediately, we have a winner
+needles = [
+    '6be5634f38282ae6a889a3e6a7ca4616bbf597915d91676cbd401683e732bd15',
+    '15bd32e7831640bd6c67915d9197f5bb1646caa7e6a389a8e62a28384f63e56b',
+    'f2b8d5a2d4d9ce5f5db365b648d02548e274f24f1dfea84a05d3c7f7f97a5807'
+]
 
 def serialise(obj):
     import binascii
-    import simplejson as json
 
     o = [["proposal", obj]]
     s = json.dumps(o, sort_keys=True, indent=None, separators=(',', ':'))
 
-    return binascii.hexlify(s)
+    return binascii.hexlify(s.encode('utf-8'))
 
 
 def rangeit(ntime, start, stop):
@@ -34,7 +27,10 @@ def rangeit(ntime, start, stop):
     for epoch in range(start, stop + 1):
         # print(epoch)
 
+        # proposal generator always adds this many seconds between start_epoch
+        # and end_epoch
         gap = 2575480
+
         obj = {
             "end_epoch": str(epoch + gap),
             "name": "Survey-why-Merchants-not-using-Dash",
@@ -46,8 +42,57 @@ def rangeit(ntime, start, stop):
         }
 
         # Correct usage is 'gobject genhash <parent-hash> <revision> <time> <data-hex>'
-        cmd = "dash-cli gobject genhash 0 1 {} {}".format(ntime, serialise(obj))
-        print(cmd)
+        # cmd = "dash-cli gobject genhash 0 1 {} {}".format(ntime, serialise(obj))
+        # print(cmd)
+
+        special_dash_dir = '/home/nmarley/dash-86525601d5915f380976c9d2e686ad7f66db991f'
+        cmd = [
+            '{}/bin/dash-cli'.format(special_dash_dir),
+            'gobject', 'genhash', '0', '1', str(ntime), serialise(obj)
+        ]
+
+        # result = subprocess.run(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        stdout = result.stdout or b''
+        out = stdout.decode('utf-8').rstrip()
+        hsh = json.loads(out)
+
+        val = hsh['gobject genhash']
+        fields = val.split(' ')
+        objhash = fields[2]
+        print('objhash = %s' % objhash)
+
+        # stop immediately, we have a winner !
+        if objhash in needles:
+            print('Got it!')
+            print(val)
+            sys.exit(0)
+
+        # nt[1499923860] se[1500509375] f2b8d5a2d4d9ce5f5db365b648d02548e274f24f1dfea84a05d3c7f7f97a5807
+        # import pdb; pdb.set_trace(); 1
+        # print(cmd)
+
+        # 6be5634f38282ae6a889a3e6a7ca4616bbf597915d91676cbd401683e732bd15
+        # 15bd32e7831640bd6c67915d9197f5bb1646caa7e6a389a8e62a28384f63e56b
 
 
-rangeit(ntime, start, stop)
+
+ntime_start = 1499923860
+#ntime_start = 1499903860
+ntime_stop = 1499973860
+
+#epoch_start = 1500386019
+#epoch_stop = 1500731619
+
+#epoch_start = 1500386019
+#epoch_stop = 1500731619
+
+#epoch_start = 1500494975
+#epoch_stop = 1500539372
+
+# smallest range
+epoch_start = 1500509375
+epoch_stop = 1500523775
+
+for ntime in range(ntime_start, ntime_stop + 1):
+    rangeit(ntime, epoch_start, epoch_stop)
