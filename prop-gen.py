@@ -4,13 +4,25 @@ from pprint import pprint
 import sys
 import os
 import simplejson as json
+import signal
 # ============================================================================
+
+ntime = 0
+epoch = 0
+
+def signal_handler(sig, frame):
+    print('ntime = %s' % ntime)
+    print('epoch = %s' % epoch)
+
+
+signal.signal(signal.SIGINT, signal_handler)
+
 
 # if either of these hashes is found, stop immediately, we have a winner
 needles = [
     '6be5634f38282ae6a889a3e6a7ca4616bbf597915d91676cbd401683e732bd15',
     '15bd32e7831640bd6c67915d9197f5bb1646caa7e6a389a8e62a28384f63e56b',
-    'f2b8d5a2d4d9ce5f5db365b648d02548e274f24f1dfea84a05d3c7f7f97a5807'
+    # 'f2b8d5a2d4d9ce5f5db365b648d02548e274f24f1dfea84a05d3c7f7f97a5807'
 ]
 
 def serialise(obj):
@@ -23,6 +35,7 @@ def serialise(obj):
 
 
 def rangeit(ntime, start, stop):
+    global epoch
 
     for epoch in range(start, stop + 1):
         # print(epoch)
@@ -57,10 +70,10 @@ def rangeit(ntime, start, stop):
         out = stdout.decode('utf-8').rstrip()
         hsh = json.loads(out)
 
-        val = hsh['gobject genhash']
+        val = hsh['genhash']
         fields = val.split(' ')
         objhash = fields[2]
-        print('objhash = %s' % objhash)
+        #print('objhash = %s' % objhash)
 
         # stop immediately, we have a winner !
         if objhash in needles:
@@ -76,8 +89,9 @@ def rangeit(ntime, start, stop):
         # 15bd32e7831640bd6c67915d9197f5bb1646caa7e6a389a8e62a28384f63e56b
 
 
-
-ntime_start = 1499923860
+#ntime_start = 1499923860
+#ntime_start = 1499970260
+ntime_start = 1499970284
 #ntime_start = 1499903860
 ntime_stop = 1499973860
 
@@ -91,8 +105,13 @@ ntime_stop = 1499973860
 #epoch_stop = 1500539372
 
 # smallest range
-epoch_start = 1500509375
-epoch_stop = 1500523775
+#epoch_start = 1500509375
+#epoch_stop = 1500523775
+
+# smallest(er) range
+epoch_start = 1500514775
+epoch_stop = 1500519572 
 
 for ntime in range(ntime_start, ntime_stop + 1):
+    print('ntime = %s' % ntime)
     rangeit(ntime, epoch_start, epoch_stop)
